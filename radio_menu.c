@@ -28,6 +28,7 @@
 #include "filter.h"
 #include "radio.h"
 #include "receiver.h"
+#include "sliders.h"
 
 static GtkWidget *parent_window=NULL;
 
@@ -75,25 +76,15 @@ static void bias_cb(GtkWidget *widget, gpointer data) {
   mic_bias_enabled=gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
 }
 
-static void apollo_cb(GtkWidget *widget, gpointer data);
+static void filter_board_cb(GtkWidget *widget, gpointer data) {
+  if ((int)data!=filter_board) {
+    filter_board = (int) data;
 
-static void alex_cb(GtkWidget *widget, gpointer data) {
-  if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
-    if(filter_board==ALEX) {
-      filter_board=NONE;
-    } else if(filter_board==NONE) {
-      filter_board=ALEX;
-    } else if(filter_board==APOLLO) {
-      GtkWidget *w=(GtkWidget *)data;
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (w), FALSE);
-      filter_board=ALEX;
-    }
+    if(filter_board!=NONE) {
+      if(protocol==NEW_PROTOCOL) {
+        filter_board_changed();
+      }
 
-    if(protocol==NEW_PROTOCOL) {
-      filter_board_changed();
-    }
-
-    if(filter_board==ALEX) {
       BAND *band=band_get_current_band();
       BANDSTACK_ENTRY* entry=bandstack_entry_get_current();
       setFrequency(entry->frequency);
@@ -103,43 +94,16 @@ static void alex_cb(GtkWidget *widget, gpointer data) {
       FILTER* band_filter=&band_filters[entry->filter];
       //setFilter(band_filter->low,band_filter->high);
       set_filter(active_receiver,band_filter->low,band_filter->high);
-      if(active_receiver->id==0) {
+      if(filter_board==ALEX && active_receiver->id==0) {
         set_alex_rx_antenna(band->alexRxAntenna);
         set_alex_tx_antenna(band->alexTxAntenna);
         set_alex_attenuation(band->alexAttenuation);
       }
     }
+    g_idle_add(pa_att_changed, NULL);
   }
 }
 
-static void apollo_cb(GtkWidget *widget, gpointer data) {
-  if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget))) {
-    if(filter_board==APOLLO) {
-      filter_board=NONE;
-    } else if(filter_board==NONE) {
-      filter_board=APOLLO;
-    } else if(filter_board==ALEX) {
-      GtkWidget *w=(GtkWidget *)data;
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (w), FALSE);
-      filter_board=APOLLO;
-    }
-    if(protocol==NEW_PROTOCOL) {
-      filter_board_changed();
-    }
-
-    if(filter_board==APOLLO) {
-      BAND *band=band_get_current_band();
-      BANDSTACK_ENTRY* entry=bandstack_entry_get_current();
-      setFrequency(entry->frequency);
-      //setMode(entry->mode);
-      set_mode(active_receiver,entry->mode);
-      FILTER* band_filters=filters[entry->mode];
-      FILTER* band_filter=&band_filters[entry->filter];
-      //setFilter(band_filter->low,band_filter->high);
-      set_filter(active_receiver,band_filter->low,band_filter->high);
-    }
-  }
-}
 
 static void sample_rate_cb(GtkWidget *widget, gpointer data) {
   radio_change_sample_rate((int)data);
@@ -314,16 +278,28 @@ void radio_menu(GtkWidget *parent) {
       x++;
     }
 
-    GtkWidget *alex_b=gtk_check_button_new_with_label("ALEX");
+    GtkWidget *filter_board_label=gtk_label_new("Filter board:");
+    gtk_grid_attach(GTK_GRID(grid),filter_board_label,x,1,1,1);
+
+    GtkWidget *no_filter_b=gtk_radio_button_new_with_label(NULL,"None");
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (no_filter_b), filter_board==NONE);
+    gtk_grid_attach(GTK_GRID(grid),no_filter_b,x,2,1,1);
+    g_signal_connect(no_filter_b,"pressed",G_CALLBACK(filter_board_cb),(gpointer *)NONE);
+
+    GtkWidget *alex_b=gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(no_filter_b),"ALEX");
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (alex_b), filter_board==ALEX);
-    gtk_grid_attach(GTK_GRID(grid),alex_b,x,1,1,1);
+    gtk_grid_attach(GTK_GRID(grid),alex_b,x,3,1,1);
+    g_signal_connect(alex_b,"pressed",G_CALLBACK(filter_board_cb),(gpointer *)ALEX);
 
-    GtkWidget *apollo_b=gtk_check_button_new_with_label("APOLLO");
+    GtkWidget *apollo_b=gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(alex_b),"APOLLO");
     gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (apollo_b), filter_board==APOLLO);
-    gtk_grid_attach(GTK_GRID(grid),apollo_b,x,2,1,1);
+    gtk_grid_attach(GTK_GRID(grid),apollo_b,x,4,1,1);
+    g_signal_connect(apollo_b,"pressed",G_CALLBACK(filter_board_cb),(gpointer *)APOLLO);
 
-    g_signal_connect(alex_b,"toggled",G_CALLBACK(alex_cb),apollo_b);
-    g_signal_connect(apollo_b,"toggled",G_CALLBACK(apollo_cb),alex_b);
+    GtkWidget *c25_b=gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(apollo_b),"C25");
+    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (c25_b), filter_board==STEMLAB_HAMLAB);
+    gtk_grid_attach(GTK_GRID(grid),c25_b,x,5,1,1);
+    g_signal_connect(c25_b,"pressed",G_CALLBACK(filter_board_cb),(gpointer *)STEMLAB_HAMLAB);
 
     x++;
   }

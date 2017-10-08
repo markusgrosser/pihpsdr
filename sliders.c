@@ -64,6 +64,9 @@ static GtkWidget *agc_gain_label;
 static GtkWidget *agc_scale;
 static GtkWidget *attenuation_label;
 static GtkWidget *attenuation_scale;
+static GtkWidget *pa_att_label;
+static GtkWidget *preamp_scale;
+static GtkWidget *alex_att_scale;
 static GtkWidget *mic_gain_label;
 static GtkWidget *mic_gain_scale;
 static GtkWidget *linein_gain_label;
@@ -99,6 +102,24 @@ int active_receiver_changed(void *data) {
     gtk_range_set_value(GTK_RANGE(af_gain_scale),active_receiver->volume*100.0);
     gtk_range_set_value (GTK_RANGE(agc_scale),active_receiver->agc_gain);
     gtk_range_set_value (GTK_RANGE(attenuation_scale),active_receiver->attenuation);
+  }
+}
+
+int pa_att_changed(void* data) {
+  if (filter_board==STEMLAB_HAMLAB) {
+    gtk_widget_hide(attenuation_label);
+    gtk_widget_hide(attenuation_scale);
+    gtk_widget_show(pa_att_label);
+    gtk_widget_show(alex_att_scale);
+    gtk_widget_show(preamp_scale);
+    gtk_range_set_value(GTK_RANGE(alex_att_scale),active_receiver->alex_attenuation);
+    gtk_range_set_value(GTK_RANGE(preamp_scale),active_receiver->preamp+active_receiver->dither);
+  } else {
+    gtk_widget_hide(pa_att_label);
+    gtk_widget_hide(alex_att_scale);
+    gtk_widget_hide(preamp_scale);
+    gtk_widget_show(attenuation_label);
+    gtk_widget_show(attenuation_scale);
   }
 }
 
@@ -144,6 +165,25 @@ void set_attenuation_value(double value) {
     }
   }
   set_attenuation(active_receiver->attenuation);
+}
+
+static gchar *preamp_format_cb(GtkWidget *widget, gdouble value, gpointer data) {
+  return g_strdup_printf("%+.0f", value * 18);
+}
+
+static void preamp_changed_cb(GtkWidget *widget, gpointer data) {
+  const int value=gtk_range_get_value(GTK_RANGE(preamp_scale));
+  active_receiver->preamp = value >= 1;
+  active_receiver->dither = value >= 2;
+}
+
+static gchar *alex_att_format_cb(GtkWidget *widget, gdouble value, gpointer data) {
+  return g_strdup_printf("%+.0f", value * -12);
+}
+
+static void alex_att_changed_cb(GtkWidget *widget, gpointer data) {
+  active_receiver->alex_attenuation=gtk_range_get_value(GTK_RANGE(alex_att_scale));
+  set_alex_attenuation(active_receiver->alex_attenuation);
 }
 
 static void agcgain_value_changed_cb(GtkWidget *widget, gpointer data) {
@@ -433,6 +473,22 @@ GtkWidget *sliders_init(int my_width, int my_height) {
   gtk_widget_show(agc_scale);
   gtk_grid_attach(GTK_GRID(sliders),agc_scale,4,0,2,1);
   g_signal_connect(G_OBJECT(agc_scale),"value_changed",G_CALLBACK(agcgain_value_changed_cb),NULL);
+
+  pa_att_label=gtk_label_new("Att/Pre:");
+  gtk_grid_attach(GTK_GRID(sliders),pa_att_label,6,0,1,1);
+
+  alex_att_scale=gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,0.0, 3, 12.0);
+  gtk_range_set_value (GTK_RANGE(alex_att_scale),active_receiver->alex_attenuation*-12.0);
+  gtk_range_set_inverted(GTK_RANGE(alex_att_scale),TRUE);
+  gtk_grid_attach(GTK_GRID(sliders),alex_att_scale,7,0,1,1);
+  g_signal_connect(GTK_RANGE(alex_att_scale),"format_value",G_CALLBACK(alex_att_format_cb),NULL);
+  g_signal_connect(G_OBJECT(alex_att_scale),"value_changed",G_CALLBACK(alex_att_changed_cb),NULL);
+
+  preamp_scale=gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,0.0, 2.0, 1.0);
+  gtk_range_set_value (GTK_RANGE(preamp_scale),active_receiver->preamp*12.0+active_receiver->dither*12.0);
+  gtk_grid_attach(GTK_GRID(sliders),preamp_scale,8,0,1,1);
+  g_signal_connect(GTK_RANGE(preamp_scale),"format_value",G_CALLBACK(preamp_format_cb),NULL);
+  g_signal_connect(G_OBJECT(preamp_scale),"value_changed",G_CALLBACK(preamp_changed_cb),NULL);
 
   attenuation_label=gtk_label_new("ATT (dB):");
   //gtk_widget_override_font(attenuation_label, pango_font_description_from_string("Arial 16"));

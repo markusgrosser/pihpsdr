@@ -450,7 +450,7 @@ fprintf(stderr,"output_device: %s\n",device_id);
     descr = snd_device_name_get_hint(*n, "DESC");
     io = snd_device_name_get_hint(*n, "IOID");
     
-    if(strncmp("dmix:", name, 5)==0/* || strncmp("pulse", name, 5)==0*/) {
+    if(strncmp("dmix:", name, 5)==0 || strncmp("pulse", name, 5)==0) {
       fprintf(stderr,"name=%s descr=%s io=%s\n",name, descr, io);
       device_id=malloc(64);
       

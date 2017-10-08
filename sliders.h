@@ -22,6 +22,7 @@
 
 extern int linein_changed(void *data);
 extern int active_receiver_changed(void *data);
+extern int pa_att_changed(void *data);
 extern int update_agc_gain(void *);
 extern int update_af_gain(void *);
 extern int update_mic_gain(void *);

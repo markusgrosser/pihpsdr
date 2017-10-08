@@ -134,6 +134,7 @@ double tone_level=0.0;
 int filter_board=ALEX;
 //int pa=PA_ENABLED;
 //int apollo_tuner=0;
+int step_attenuator=1;
 
 int updates_per_second=10;
 
@@ -304,6 +305,7 @@ void reconfigure_radio() {
     gtk_widget_show_all(sliders);
     // force change of sliders for mic or linein
     g_idle_add(linein_changed,NULL);
+    g_idle_add(pa_att_changed,NULL);
   } else {
     if(sliders!=NULL) {
       gtk_container_remove(GTK_CONTAINER(fixed),sliders); 
@@ -493,6 +495,7 @@ fprintf(stderr,"create sliders\n");
 
   // force change of sliders for mic or linein
   g_idle_add(linein_changed,NULL);
+  g_idle_add(pa_att_changed,NULL);
 
   // save every 30 seconds
 fprintf(stderr,"start save timer\n");
@@ -618,6 +621,7 @@ fprintf(stderr,"rxtx: state=%d\n",state);
 
   gtk_widget_show_all(fixed);
   g_idle_add(linein_changed,NULL);
+  g_idle_add(pa_att_changed,NULL);
 }
 
 void setMox(int state) {
@@ -813,6 +817,8 @@ fprintf(stderr,"setFrequency: %lld\n",f);
       break;
 #endif
   }
+
+  vfo_update(NULL);
 }
 
 long long getFrequency() {
@@ -888,7 +894,13 @@ void set_attenuation(int value) {
 }
 
 int get_attenuation() {
+  if (device == STEMLAB_HAMLAB) {
+    return 12 * active_receiver->alex_attenuation
+        - 18 * active_receiver->preamp
+        - 18 * active_receiver->preamp;
+  } else {
     return active_receiver->attenuation;
+  }
 }
 
 void set_alex_rx_antenna(int v) {
@@ -944,6 +956,8 @@ fprintf(stderr,"radioRestoreState: %s\n",property_path);
     value=getProperty("pa");
     if(value) pa=atoi(value);
 */
+    value=getProperty("step_attenuator");
+    if(value) step_attenuator=atoi(value);
     value=getProperty("updates_per_second");
     if(value) updates_per_second=atoi(value);
     value=getProperty("display_filled");
@@ -1142,6 +1156,8 @@ void radioSaveState() {
     sprintf(value,"%d",pa);
     setProperty("pa",value);
 */
+    sprintf(value,"%d",step_attenuator);
+    setProperty("step_attenuator",value);
     sprintf(value,"%d",updates_per_second);
     setProperty("updates_per_second",value);
     sprintf(value,"%d",display_filled);

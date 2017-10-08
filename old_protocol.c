@@ -722,6 +722,8 @@ void ozy_send_buffer() {
         output_buffer[C3]|=LT2208_GAIN_ON;
       }
 
+      output_buffer[C3] |= active_receiver->alex_attenuation;
+
       switch(receiver[0]->alex_antenna) {
         case 0:  // ANT 1
           break;

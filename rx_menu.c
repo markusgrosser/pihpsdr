@@ -58,6 +58,10 @@ static void preamp_cb(GtkWidget *widget, gpointer data) {
   active_receiver->preamp=active_receiver->preamp==1?0:1;
 }
 
+static void alex_att_cb(GtkWidget *widget, gpointer data) {
+  set_alex_attenuation((int) data);
+}
+
 static void sample_rate_cb(GtkWidget *widget, gpointer data) {
   receiver_change_sample_rate(active_receiver,(int)data);
 }
@@ -211,15 +215,20 @@ void rx_menu(GtkWidget *parent) {
     case ORIGINAL_PROTOCOL:
     case NEW_PROTOCOL: 
       {
-      GtkWidget *dither_b=gtk_check_button_new_with_label("Dither");
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (dither_b), active_receiver->dither);
-      gtk_grid_attach(GTK_GRID(grid),dither_b,x,2,1,1);
-      g_signal_connect(dither_b,"toggled",G_CALLBACK(dither_cb),NULL);
+      int y = 2;
+      if (filter_board!=STEMLAB_HAMLAB) {
+        GtkWidget *dither_b=gtk_check_button_new_with_label("Dither");
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (dither_b), active_receiver->dither);
+        gtk_grid_attach(GTK_GRID(grid),dither_b,x,y,1,1);
+        g_signal_connect(dither_b,"toggled",G_CALLBACK(dither_cb),NULL);
+        y++;
 
-      GtkWidget *random_b=gtk_check_button_new_with_label("Random");
-      gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (random_b), active_receiver->random);
-      gtk_grid_attach(GTK_GRID(grid),random_b,x,3,1,1);
-      g_signal_connect(random_b,"toggled",G_CALLBACK(random_cb),NULL);
+        GtkWidget *random_b=gtk_check_button_new_with_label("Random");
+        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (random_b), active_receiver->random);
+        gtk_grid_attach(GTK_GRID(grid),random_b,x,y,1,1);
+        g_signal_connect(random_b,"toggled",G_CALLBACK(random_cb),NULL);
+        y++;
+      }
 
       if((protocol==ORIGINAL_PROTOCOL && device==DEVICE_METIS) ||
 #ifdef USBOZY
@@ -227,10 +236,28 @@ void rx_menu(GtkWidget *parent) {
 #endif
          (protocol==NEW_PROTOCOL && device==NEW_DEVICE_ATLAS)) {
 
-        GtkWidget *preamp_b=gtk_check_button_new_with_label("Preamp");
-        gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (preamp_b), active_receiver->preamp);
-        gtk_grid_attach(GTK_GRID(grid),preamp_b,x,4,1,1);
-        g_signal_connect(preamp_b,"toggled",G_CALLBACK(preamp_cb),NULL);
+        if(filter_board!=STEMLAB_HAMLAB) {
+          GtkWidget *preamp_b=gtk_check_button_new_with_label("Preamp");
+          gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (preamp_b), active_receiver->preamp);
+          gtk_grid_attach(GTK_GRID(grid),preamp_b,x,y,1,1);
+          g_signal_connect(preamp_b,"toggled",G_CALLBACK(preamp_cb),NULL);
+          y++;
+
+          GtkWidget *alex_att_b = NULL;
+          for(i = 0; i <= 3; i++) {
+            const int att_step = filter_board==STEMLAB_HAMLAB ? 12 : 10;
+            sprintf(label, "Att %d dB", -i * att_step);
+            if(i==0) {
+              alex_att_b = gtk_radio_button_new_with_label(NULL,label);
+            } else {
+              alex_att_b = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(alex_att_b), label);
+            }
+            gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(alex_att_b), active_receiver->alex_attenuation == i);
+            gtk_grid_attach(GTK_GRID(grid), alex_att_b, x, y, 1, 1);
+            g_signal_connect(alex_att_b, "pressed", G_CALLBACK(alex_att_cb) ,(gpointer *) i);
+            y++;
+          }
+        }
       }
       }
       x++;

@@ -52,6 +52,7 @@ extern char property_path[];
 
 #define ALEX 1
 #define APOLLO 2
+#define STEMLAB_HAMLAB 3
 
 // specify how many receivers (only 1 or 2 for now)
 #define MAX_RECEIVERS 2
@@ -98,6 +99,7 @@ extern double tone_level;
 extern int filter_board;
 extern int pa;
 extern int apollo_tuner;
+extern int step_attenuator;
 
 extern int updates_per_second;
 extern int display_panadapter;
@@ -266,6 +268,7 @@ extern void set_attenuation(int value);
 extern int get_attenuation();
 extern void set_alex_rx_antenna(int v);
 extern void set_alex_tx_antenna(int v);
+extern void set_preamp(int v);
 extern void set_alex_attenuation(int v);
 
 extern int isTransmitting();

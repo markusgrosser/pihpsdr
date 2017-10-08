@@ -161,6 +161,16 @@ static void vfo_cb(GtkComboBox *widget,gpointer data) {
   vfo_update(NULL);
 }
 
+static void vfo_step_up_cb(GtkWidget *widget, gpointer data) {
+  (void) widget; (void) data;
+  vfo_step(1);
+}
+
+static void vfo_step_down_cb(GtkWidget *widget, gpointer data) {
+  (void) widget; (void) data;
+  vfo_step(-1);
+}
+
 static GtkWidget *last_mode;
 
 void vfo_menu(GtkWidget *parent) {
@@ -250,6 +260,15 @@ void vfo_menu(GtkWidget *parent) {
   gtk_grid_attach(GTK_GRID(grid),vfo_b,3,4,1,1);
 
   gtk_container_add(GTK_CONTAINER(content),grid);
+
+  GtkWidget *vfo_step_up=gtk_button_new_with_label("Step +");
+  gtk_grid_attach(GTK_GRID(grid), vfo_step_up,3,5,1,1);
+  g_signal_connect(vfo_step_up, "pressed", G_CALLBACK(vfo_step_up_cb), NULL);
+  gtk_widget_show(vfo_step_up);
+  GtkWidget *vfo_step_down=gtk_button_new_with_label("Step –");
+  gtk_grid_attach(GTK_GRID(grid), vfo_step_down,3,6,1,1);
+  g_signal_connect(vfo_step_down, "pressed", G_CALLBACK(vfo_step_down_cb), NULL);
+  gtk_widget_show(vfo_step_down);
 
   sub_menu=dialog;
 
